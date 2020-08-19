@@ -42,17 +42,8 @@ oxy_raster <- crossing(tibble(date = seq(ymd("1961-09-10"), ymd("1962-06-17"), b
 # for ice interpolation to match oxy and silica raster dates every 3 days
 truelove_ice<-na_interpolation(truelove_ice)
 
-## inner join this once we have more ice thickness data
 # oxy_raster_meta<-inner_join(oxy_raster, truelove_ice, by = "date")
 oxy_raster_ice<-left_join(oxy_raster, truelove_ice, by = "date")
-
-# theme(axis.line = element_line(colour = "black"),
-  #panel.grid.major = element_blank(),
-  #panel.grid.minor = element_blank(),
-  #panel.border = element_blank(),
-  #panel.background = element_blank())
-#is the same as theme_classic()
-
 
 ## For silica
 estimate_silica_by_date <- function(target_date, target_depth) {
@@ -161,77 +152,3 @@ ca_db <- read_tsv("ca_lake_db.txt")
 summary(ca_db$o2_rate)
 mean(ca_db$o2_rate)
 sd(ca_db$o2_rate)
-
-#Summer only data
-truelove_summer<-read_tsv("truelove_summer.txt")
-
-pdf("Immerk_Si_summer.pdf", height = 4, width = 6)
-ggplot(truelove_summer, aes(x=Si, y=depth)) +
-  geom_point(aes(color=date), size = 3) +
-  geom_path(aes(color=date), linetype = 2) +
-  #scale_color_manual(values = c("#3B9AB2", "#78B7C5", "#EBCC2A", "#E1AF00", "#F21A00"), name = "Date") +
-  scale_color_manual(name=NULL,
-                     values=c("Black", "grey40", "blue", "green", "green4"),
-                     breaks=c("5June", "17June", "18July", "2August", "21August"),
-                     labels=c("5Jun1962", "17Jun1962", "18Jul1962", "2Aug1962", "21Aug1962")) +
-  xlim(c(0,50)) +
-  scale_x_continuous(position = "top", limits = c(0,40)) +
-  xlab(label_si) +
-  ylab("Depth (m)") +
-  ylim(c(7,0)) +
-  theme_classic()
-
-dev.off()
-
-## Oxygen all the way to the bottom - assume anoixic sediment at 1 cm
-## DO NOT USE -- the oxygen concentration change between sediment and overlying water column is not 
-## linear due to diffusive boundary layer, which is a function of many different things.
-truelove_oxydeep<-read_tsv("truelove_oxydeep.txt")
-
-estimate_oxydeep_by_date <- function(target_date, target_depth) {
-  data_for_deepdate <- truelove_oxydeep %>%
-    filter(date == target_date) %>%
-    arrange(depth)
-  approx(data_for_deepdate$depth, data_for_deepdate$oxygen_mL, xout = target_depth)$y
-}
-
-estimate_oxydeep_by_depth <- function(target_depth, target_date) {
-  data_for_deepdepth <- oxydeep_interp_depth %>%
-    filter(depth == target_depth) %>%
-    arrange(date)
-  approx(data_for_deepdepth$date, data_for_deepdepth$oxygen_mL, xout = target_date)$y
-}
-
-oxydeep_interp_depth<-crossing(tibble(date = unique(truelove_oxydeep$date)), 
-                           tibble(depth = seq(1, 7.51, length.out = 50))) %>%
-  group_by(date) %>%
-  mutate(oxygen_mL = estimate_oxydeep_by_date(date[1], depth))
-
-oxydeep_raster <- crossing(tibble(date = seq(ymd("1961-09-10"), ymd("1962-05-23"), by=3)),
-                       tibble(depth = unique(oxydeep_interp_depth$depth))) %>%
-  filter(depth >= 1) %>%
-  group_by(depth) %>%
-  mutate(oxygen_mL = estimate_oxydeep_by_depth(depth[3], date))
-
-oxydeep_raster_ice<-left_join(oxydeep_raster, truelove_ice, by = "date")
-
-oxy_legend<-expression(paste("Oxygen (mL ",L^-1,")"))
-
-pdf("Immerk_O2_deep.pdf", height = 4, width = 6)
-ggplot(oxydeep_raster_ice, aes(date, depth, fill = oxygen_mL)) +
-  geom_raster() +
-  scale_fill_gradient2(low = "#0072B2", mid = "#D55E00", high = "#F0E442", midpoint = 5.45, name = "Oxygen\n(mL/L)") +
-  geom_point(data = truelove_oxydeep, aes(x = date, y = depth), size = 1) +
-  geom_line(aes(x = date, y = ice_m)) +
-  scale_y_reverse() +
-  ylim(7.4, 0) +
-  xlab(NULL) +
-  scale_x_date(limits = as.Date(c("1961-09-08", "1962-06-17"))) +
-  ylab("Depth (m)") +
-  coord_cartesian(expand = FALSE) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.border = element_blank(), panel.background = element_blank(), 
-        legend.position = c(0.947, 0.5), legend.margin=margin(0,0,0,0), legend.box.margin=margin(0,0,0,0),
-        plot.margin = unit(c(0.2, 0.01, 0.01, 0.02), "cm"))
-dev.off()
-
