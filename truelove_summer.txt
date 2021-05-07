@@ -1,0 +1,18 @@
+date	depth	Si	O2
+5June	2	31.5	7.4
+5June	4	35.8	5.5
+5June	5	37.1	4.3
+5June	6	37.9	3
+17June	2	24.6	7.6
+17June	4	26.3	7.5
+17June	5	27.6	7.5
+17June	6	24.6	8
+18July	2	6.9	
+18July	4	26.7	
+18July	6	20.7	
+2August	0	9.9	
+2August	2	10.1	
+2August	4	10.6	
+2August	6	9.3	
+21August	2	6	
+21August	4	6	
